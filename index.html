@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.3/JSXTransformer.js"></script>
+<script src="lib/react-with-addons.min.js"></script>
+<script src="lib/react-dom.min.js"></script>
+
+</head>
+
+<body>
+
+<div id="container">
+</div>
+<script type="text/jsx">
+
+var Done = React.createClass( {
+    
+    handleClick(){
+        this.props.changeStatus( this.props.id );
+    },
+
+    render(){
+
+        return (
+                < input  type="checkbox" checked={this.props.done} onClick={ this.handleClick }>
+                </input>
+            );
+        
+    }
+
+}   );
+
+
+
+var ListItem = React.createClass( {
+
+    shouldComponentUpdate(newprops){
+        
+        if(this.props.item.id===newprops.item.id&&this.props.item.done===newprops.item.done&&this.props.item.text===newprops.item.text){
+            console.log("Not Rendering"+newprops.item.id);
+            return false;
+        }
+        else{
+            
+            console.log("Rendering"+newprops.item.id);
+            return true;
+        }
+    },
+
+    render() {
+        return (
+                <div id={ this.props.item.id }>
+                    < Done id={ this.props.item.id }
+                           changeStatus={ this.props.changeStatus }
+                           done={ this.props.item.done }
+                    />
+                    {this.props.item.text}       :   
+                <button onClick={this.props.deleteItem}> 
+                    Delete
+                </button>
+                </div >);
+    }
+
+} );
+
+
+
+
+var List = React.createClass( {
+    	
+    render() {
+    	var listItems=[];
+    	var notShow=0;
+        
+        
+        this.props.listItem.forEach( function ( item, index ) {
+                    		listItems.push	( < ListItem item={item}
+                                                   changeStatus={ this.props.changeStatus }
+                                                   deleteItem={this.props.deleteItem.bind(null,item.id)}/> );
+               }.bind( this )
+        );
+
+
+        return ( < div >
+            { listItems }
+        </ div> );
+
+    }
+} );
+
+
+
+var View = React.createClass( {
+    handleChange(){
+    	this.props.handleViewChange(this.refs.viewOptions.value);
+    },
+    render() {
+        return (
+                < select value={this.props.selectOption} ref="viewOptions" onChange={this.handleChange}>
+                    < option value='All'>
+                        All
+                    </option>
+                    < option value='Done'>
+                        Done
+                    </option>
+                    <option value='Undone'>
+                        Not Done
+                    </option>
+                </select>
+        );
+    }
+} );
+
+
+
+var InputBox = React.createClass( {
+	
+	getInitialState(){
+		return {value:""};
+	},
+	handlekeyPress(event){
+		if(event.charCode===13&&this.refs.newTask.value){
+			    this.setState({value:""});
+            	this.props.addItem(this.refs.newTask.value);
+			}
+	},
+    handleChange(event){
+        console.log("sda:"+this.refs.newTask.value);
+        console.log(event.target, this.refs.newTask);
+            this.setState({value:this.refs.newTask.value}); 
+    },
+    render() {
+        return (
+                <input ref="newTask" value={this.state.value} placeholder="Enter Task Here" onKeyPress={this.handlekeyPress} onChange={this.handleChange}>
+                </input>
+                );
+    }
+} );
+
+
+
+
+var Parent = React.createClass( {
+    
+    getInitialState() {
+        return {
+            view: 'All',
+            taskList: [],
+            
+        };
+    },
+    getList(viewSelect){
+        var taskList=[];
+        switch(this.state.view)
+        {
+            case 'All': {
+                this.state.taskList.forEach(function(item,index){
+                    item.id=index;
+                    taskList.push(item);
+                 });
+
+                break;
+            }
+            case 'Done':{
+                this.state.taskList.forEach(function(item,index){
+                    if(item.done){
+                        item.id=index;
+                        taskList.push(item);
+                } });
+                break;
+            }
+            case 'Undone':{
+                this.state.taskList.forEach(function(item,index){
+                    if(!item.done){
+                        item.id=index;
+                        taskList.push(item);
+                } });
+                break;
+            }
+
+        };
+        return taskList;
+    },
+    
+
+    updateStatus( id ) {
+
+        console.log(this.state.taskList[id].done);
+    
+        var setDone=!this.state.taskList[id].done;
+        var newTasks=React.addons.update(this.state.taskList,{[id]:{done:{$set:setDone}}});
+        this.setState( {taskList:newTasks} );
+  
+    },
+    
+    handleViewChange(selectValue){
+    	this.setState({view:selectValue});
+    },
+
+
+    addItem(task){
+        tempTasks=React.addons.update(this.state.taskList,{$push:[{done:false,text:task}]});
+        this.setState({taskList:tempTasks});
+    
+    },
+    deleteItem(id){
+        
+        newTasks=React.addons.update(this.state.taskList,{$splice:[[id,1]]});
+        this.setState({taskList:newTasks});
+   
+    },
+    render() {
+
+        return (
+                < div >
+                    <InputBox addItem={this.addItem}/>
+                    <View selectOption={this.state.view} handleViewChange={this.handleViewChange}/>
+                    <List listItem={ this.getList(this.state.view) }
+                          changeStatus={ this.updateStatus } selectValue = {this.state.view}
+                          deleteItem={this.deleteItem}
+                    />
+                </div >
+        );
+    }
+} );
+
+
+ReactDOM.render(
+        <Parent />,
+        document.getElementById( 'container' )
+);
+
+</script>
+
+</body>
+
+</html>
